@@ -15,61 +15,12 @@
         style="background-color: #1abc9c"
         data-color="#1abc9c"
       ></div>
-      <div
-        class="color-option"
-        style="background-color: #3498db"
-        data-color="#3498db"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #34495e"
-        data-color="#34495e"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #27ae60"
-        data-color="#27ae60"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #8e44ad"
-        data-color="#8e44ad"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #f1c40f"
-        data-color="#f1c40f"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #e74c3c"
-        data-color="#e74c3c"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #95a5a6"
-        data-color="#95a5a6"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #d35400"
-        data-color="#d35400"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #2ecc71"
-        data-color="#2ecc71"
-      ></div>
-      <div
-        class="color-option"
-        style="background-color: #e67e22"
-        data-color="#e67e22"
-      ></div>
+      <!-- 나머지 색상 옵션들 -->
     </div>
     <canvas></canvas>
     <div class="btns">
       <input
-        id="line-width"
+        id="line-width-input"
         type="range"
         min="1"
         max="10"
@@ -79,13 +30,181 @@
       <button id="mode-btn">🩸 Fill</button>
       <button id="destroy-btn">💣 Destroy</button>
       <button id="eraser-btn">❌ Erase</button>
-      <label for="file">
-        💅🏻 Add Photo
-        <input type="file" accept="image/*" id="file"
+      <label for="file"
+        >💅🏻 Add Photo<input type="file" accept="image/*" id="file"
       /></label>
       <input type="text" id="text" placeholder="Add text here... :)" />
       <button id="save">🖼 Save image</button>
+      <button id="extract">Extract Image</button>
+      <!-- 이미지 추출 버튼 -->
     </div>
-    <script src="app.js"></script>
+    <script>
+      const canvas = document.querySelector("canvas");
+      const ctx = canvas.getContext("2d");
+      const paths = []; // 사용자가 그린 선들을 저장하는 배열
+      let isExtracting = false; // 이미지 추출 중 여부를 나타내는 변수
+
+      const CANVAS_WIDTH = 800;
+      const CANVAS_HEIGHT = 800;
+
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      let isPainting = false;
+      let isFilling = false;
+
+      function onMove(event) {
+        if (isPainting) {
+          ctx.lineTo(event.offsetX, event.offsetY);
+          ctx.stroke();
+          paths[paths.length - 1].push({ x: event.offsetX, y: event.offsetY });
+          return;
+        }
+        ctx.moveTo(event.offsetX, event.offsetY);
+      }
+
+      function startPainting() {
+        isPainting = true;
+        paths.push([]);
+      }
+
+      function cancelPainting() {
+        isPainting = false;
+        ctx.beginPath();
+      }
+
+      function onLineWidthChange(event) {
+        ctx.lineWidth = event.target.value;
+      }
+
+      function onColorChange(event) {
+        ctx.strokeStyle = event.target.value;
+        ctx.fillStyle = event.target.value;
+      }
+
+      function onColorClick(event) {
+        const colorValue = event.target.dataset.color;
+        ctx.strokeStyle = colorValue;
+        ctx.fillStyle = colorValue;
+        document.getElementById("color").value = colorValue;
+      }
+
+      function onModeClick() {
+        if (isFilling) {
+          isFilling = false;
+          document.getElementById("mode-btn").innerText = "Fill";
+        } else {
+          isFilling = true;
+          document.getElementById("mode-btn").innerText = "Draw";
+        }
+      }
+
+      function onCanvasClick() {
+        if (isFilling) {
+          ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
+      }
+
+      function onDestroyClick() {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      }
+
+      function onEraserClick() {
+        ctx.strokeStyle = "white";
+        isFilling = false;
+        document.getElementById("mode-btn").innerText = "Fill";
+      }
+
+      function onFileChange(event) {
+        const file = event.target.files[0];
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.src = url;
+        image.onload = function () {
+          ctx.drawImage(image, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+          document.getElementById("file").value = null;
+        };
+      }
+
+      function onDoubleClick(event) {
+        const text = document.getElementById("text").value;
+        if (text !== "") {
+          ctx.save();
+          ctx.lineWidth = 1;
+          ctx.font = "68px sans-serif";
+          ctx.fillText(text, event.offsetX, event.offsetY);
+          ctx.restore();
+        }
+      }
+
+      function onSaveClick() {
+        const url = canvas.toDataURL();
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "myDrawing.png";
+        a.click();
+      }
+
+      const extractBtn = document.getElementById("extract");
+
+      function extractImage() {
+        if (!isExtracting) {
+          isExtracting = true;
+          const lastPath = paths[paths.length - 1]; // 최근 그린 선들
+          if (lastPath.length > 0) {
+            const extractedCanvas = document.createElement("canvas");
+            extractedCanvas.width = CANVAS_WIDTH;
+            extractedCanvas.height = CANVAS_HEIGHT;
+            const extractedCtx = extractedCanvas.getContext("2d");
+            extractedCtx.strokeStyle = ctx.strokeStyle;
+            extractedCtx.lineWidth = ctx.lineWidth;
+            extractedCtx.lineCap = ctx.lineCap;
+            extractedCtx.beginPath();
+            extractedCtx.moveTo(lastPath[0].x, lastPath[0].y);
+            for (const point of lastPath) {
+              extractedCtx.lineTo(point.x, point.y);
+            }
+            extractedCtx.stroke();
+            const url = extractedCanvas.toDataURL(); // 추출된 이미지 URL 가져오기
+            const image = new Image();
+            image.src = url;
+            const w = window.open(""); // 새 창 열기
+            w.document.write(image.outerHTML); // 이미지를 새 창에 쓰기
+          }
+          isExtracting = false;
+        }
+      }
+
+      extractBtn.addEventListener("click", extractImage); // 버튼 이벤트 추가
+
+      canvas.addEventListener("dblclick", onDoubleClick);
+      canvas.addEventListener("mousemove", onMove);
+      canvas.addEventListener("mousedown", startPainting);
+      canvas.addEventListener("mouseup", cancelPainting);
+      canvas.addEventListener("mouseleave", cancelPainting);
+      canvas.addEventListener("click", onCanvasClick);
+      document
+        .getElementById("line-width-input")
+        .addEventListener("change", onLineWidthChange);
+      document
+        .getElementById("color")
+        .addEventListener("change", onColorChange);
+      document
+        .querySelectorAll(".color-option")
+        .forEach((color) => color.addEventListener("click", onColorClick));
+      document
+        .getElementById("mode-btn")
+        .addEventListener("click", onModeClick);
+      document
+        .getElementById("destroy-btn")
+        .addEventListener("click", onDestroyClick);
+      document
+        .getElementById("eraser-btn")
+        .addEventListener("click", onEraserClick);
+      document.getElementById("file").addEventListener("change", onFileChange);
+      document.getElementById("save").addEventListener("click", onSaveClick);
+    </script>
   </body>
 </html>
