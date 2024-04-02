@@ -106,17 +106,21 @@
 
       function onMove(event) {
         if (isPainting) {
-          ctx.lineTo(event.offsetX, event.offsetY);
+          const x = event.clientX - canvas.getBoundingClientRect().left;
+          const y = event.clientY - canvas.getBoundingClientRect().top;
+          ctx.lineTo(x, y);
           ctx.stroke();
           paths[paths.length - 1].push({
-            x: event.offsetX,
-            y: event.offsetY,
+            x,
+            y,
             color: ctx.strokeStyle,
             lineWidth: ctx.lineWidth,
           });
           return;
         }
-        ctx.moveTo(event.offsetX, event.offsetY);
+        const x = event.clientX - canvas.getBoundingClientRect().left;
+        const y = event.clientY - canvas.getBoundingClientRect().top;
+        ctx.moveTo(x, y);
       }
 
       function startPainting() {
@@ -186,10 +190,12 @@
       function onDoubleClick(event) {
         const text = document.getElementById("text").value;
         if (text !== "") {
+          const x = event.clientX - canvas.getBoundingClientRect().left;
+          const y = event.clientY - canvas.getBoundingClientRect().top;
           ctx.save();
           ctx.lineWidth = 1;
           ctx.font = "68px sans-serif";
-          ctx.fillText(text, event.offsetX, event.offsetY);
+          ctx.fillText(text, x, y);
           ctx.restore();
         }
       }
