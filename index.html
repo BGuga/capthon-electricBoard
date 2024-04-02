@@ -86,6 +86,7 @@
       <button id="save">🖼 Save image</button>
       <button id="extract">Extract Image</button>
       <!-- 이미지 추출 버튼 -->
+      <button id="undo-btn">↩ Undo</button>
     </div>
     <script>
       const canvas = document.querySelector("canvas");
@@ -107,7 +108,12 @@
         if (isPainting) {
           ctx.lineTo(event.offsetX, event.offsetY);
           ctx.stroke();
-          paths[paths.length - 1].push({ x: event.offsetX, y: event.offsetY });
+          paths[paths.length - 1].push({
+            x: event.offsetX,
+            y: event.offsetY,
+            color: ctx.strokeStyle,
+            lineWidth: ctx.lineWidth,
+          });
           return;
         }
         ctx.moveTo(event.offsetX, event.offsetY);
@@ -227,6 +233,37 @@
       }
 
       extractBtn.addEventListener("click", extractImage); // 버튼 이벤트 추가
+
+      // undo 기능을 위한 함수
+      function undo() {
+        if (paths.length > 0) {
+          paths.pop(); // 마지막에 그린 선 삭제
+          redraw(); // 그림 다시 그리기
+        }
+      }
+
+      // 그림을 다시 그리는 함수
+      function redraw() {
+        // 캔버스 초기화
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // 저장된 선들을 다시 그리기
+        for (const path of paths) {
+          ctx.strokeStyle = path[0].color;
+          ctx.lineWidth = path[0].lineWidth;
+          ctx.beginPath();
+          ctx.moveTo(path[0].x, path[0].y);
+          for (const point of path) {
+            ctx.lineTo(point.x, point.y);
+          }
+          ctx.stroke();
+        }
+      }
+
+      const undoBtn = document.getElementById("undo-btn");
+
+      // undo 버튼 클릭 시 undo 함수 호출
+      undoBtn.addEventListener("click", undo);
 
       canvas.addEventListener("dblclick", onDoubleClick);
       canvas.addEventListener("mousemove", onMove);
